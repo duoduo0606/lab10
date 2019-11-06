@@ -58,14 +58,10 @@ void TimerSet(unsigned long M)
   _avr_timer_cntcurr = _avr_timer_M;
 }
 
-//////////////////////////////////////var all
+//////////////////////////////////////
 unsigned char threeLEDs;
 unsigned char blinkingLED;
 unsigned char combineLEDs;
-unsigned char Beep;
-
-unsigned char BP_f=2;
-
 //////////////////////////////////////
 ///////////////////////////ThreeLEDsSM
 enum TSM_states { TSM_start, TSM_init, TSM_on} TSM_state;
@@ -119,7 +115,7 @@ enum BSM_states {BSM_start, BSM_init, BSM_on} BSM_state;
 BSM_Tick()
 {
   
- 
+
  
 
   switch(BSM_state)
@@ -143,10 +139,10 @@ BSM_Tick()
     case BSM_start:
       break;
     case BSM_init:
-      B_out = 0x00;
+      B_out = 0x01;
       break;
     case BSM_on:
-      B_out = (B_out == 0x08)?0x00:0x08;
+      B_out = (B_out == 0x08)?0x01:0x08;
       break;
     default:
       break;
@@ -157,69 +153,17 @@ BSM_Tick()
 }
 
 //////////////////////////////////////
-///////////////////////////BeepSM
-enum BP_states { BP_start, BP_init, BP_on} BP_state;
- 
-// unsigned char BP_out = 0x00;
-
-BP_Tick()
-{
-unsigned char A0 = ((~PINA)&0x01);
-unsigned char A1 = ((~PINA)&0x02);
-unsigned char A2 = ((~PINA)&0x04);
-  switch(BP_state)
-    {
-    case BP_start:
-      BP_state = BP_init; 
-      break;
-    case BP_init:
-      BP_state = BP_on;
-      break;
-    case BP_on:
-      BP_state = BP_on;
-      break;
-    default:
-      BP_state = BP_start;
-      break;
-    }
-
-  switch(BP_state)
-    {
-    case BP_start:
-      break;
-    case BP_init:
-      // BP_out = 0x10;
-      break;
-    case BP_on:
-      if(A0){
-	BP_f++;
-      }
-      if(A1){
-	BP_f--;
-      }
-      //if (A2) {
-      //	 BP_out = (BP_out == 0x10)?0x00:0x10;
-      //}
-      break;
-    default:
-      break;
-    }
-  //Beep = BP_out;
-
-  return BP_state;
-}
-//////////////////////////////////////
 ///////////////////////////CombineLEDsSM
 enum CSM_states {CSM_start, CSM_init, CSM_on} CSM_state;
 
 
   unsigned char C_out = 0x00;
-  unsigned char BP_out = 0x00;
+
 
 CSM_Tick()
 {
   
-unsigned char A2 = ((~PINA)&0x04);
+
 
   switch(CSM_state)
     {
@@ -245,11 +189,7 @@ unsigned char A2 = ((~PINA)&0x04);
       C_out = 0x00;
       break;
     case CSM_on:
-       if (A2) {
-      	 BP_out = (BP_out == 0x10)?0x00:0x10;
-      }
-       Beep = BP_out;
-      C_out = blinkingLED | threeLEDs | Beep;
+      C_out = blinkingLED | threeLEDs;
       break;
     default:
       break;
@@ -266,25 +206,21 @@ void main()
   unsigned long TSM_elapsedTime = 0;
   unsigned long BSM_elapsedTime = 0;
   unsigned long CSM_elapsedTime = 0;
-  unsigned long BP_elapsedTime = 0;
-  const unsigned long timerPeriod = 1;
+  const unsigned long timerPeriod = 100;
   //////////////////port
   DDRB = 0xff;
   PORTB = 0x00;
-
-  DDRA = 0x00;
-  PORTA = 0xff;
   //////////////////timer
-  TimerSet(1);
+  TimerSet(100);
   TimerOn();
   /////////////////init state
   TSM_state = TSM_start;
   BSM_state = BSM_start;
   CSM_state = CSM_start;
-  BP_state = BP_start;
+ 
   while(1)
     {
-      if (TSM_elapsedTime >= 300) {
+      if (TSM_elapsedTime >= 1000) {
 	TSM_Tick();
 	TSM_elapsedTime = 0;
       }
@@ -292,21 +228,15 @@ void main()
 	BSM_Tick();
 	BSM_elapsedTime = 0;
       }
-      if (BP_elapsedTime >= 300) {
-	BP_Tick();
-	BP_elapsedTime = 0;
-      }
-      if (CSM_elapsedTime >= BP_f) {
+      if (CSM_elapsedTime >= 1000) {
 	CSM_Tick();
 	CSM_elapsedTime = 0;
       }
-  
       while (!TimerFlag){}
       TimerFlag = 0;
        TSM_elapsedTime += timerPeriod;
        BSM_elapsedTime += timerPeriod;
        CSM_elapsedTime += timerPeriod;
-       BP_elapsedTime += timerPeriod;
     }
    
   //return 1;
